@@ -4,31 +4,41 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace FastBulkInstaller
 {
     internal class FBI
     {
-        static void Main()
+        public static void Main()
         {
             string fileName = "config.yaml";
             string path = Path.Combine(Directory.GetCurrentDirectory(), fileName);
-            Dictionary<string, Tuple<string, string, string, string, bool, string>> programdictionary = new Dictionary<string, Tuple<string, string, string, string, bool, string>>();
-            ProgramDiccionary(programdictionary);
+            if (!File.Exists(path))
+            {
+                CreateFile(path);
+            }
+
+            Console.WriteLine("Fetching program Database from the web");
+            string jsc = "";
+            Task.Run(async () =>
+            {
+                jsc = await FetchDatabase();
+            }).Wait();
+
+            Database database = JsonConvert.DeserializeObject<Database>(jsc);
+
             Console.Clear();
 
             Console.ForegroundColor = ConsoleColor.Blue;
             Console.WriteLine(" ▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄ ▄▄▄ \r\n█       █  ▄    █   █\r\n█    ▄▄▄█ █▄█   █   █\r\n█   █▄▄▄█       █   █\r\n█    ▄▄▄█  ▄   ██   █\r\n█   █   █ █▄█   █   █\r\n█▄▄▄█   █▄▄▄▄▄▄▄█▄▄▄█\r\n");
             Console.ForegroundColor = ConsoleColor.White;
 
-            if (!File.Exists(path))
-            {
-                CreateFile(path);
-            }
 
             Console.ForegroundColor = ConsoleColor.Yellow;
             DisplayMenu();
             Console.ForegroundColor = ConsoleColor.White;
+
 
             string input = Console.ReadLine();
             if (int.TryParse(input, out int choice))
@@ -47,10 +57,10 @@ namespace FastBulkInstaller
             switch (choice)
             {
                 case 1:
-                    ListaProgramas(programdictionary);
+                    ListaProgramas(database);
                     break;
                 case 2:
-                    ReadFile(path, programdictionary);
+                    ReadFile(path, database);
                     break;
                 case 3:
                     string url = "https://github.com/ManuFlosoYT/FastBulkInstaller";
@@ -66,11 +76,37 @@ namespace FastBulkInstaller
             Console.ReadKey();
         }
 
+        static async Task<string> FetchDatabase()
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                try
+                {
+                    HttpResponseMessage response = await client.GetAsync("https://pastebin.com/raw/XkgNYRTL");
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string rawText = await response.Content.ReadAsStringAsync();
+                        return rawText;  
+                    }
+                    else
+                    {
+                        Console.WriteLine($"HTTP request failed with status code: {response.StatusCode}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"An error occurred: {ex.Message}");
+                }
+                return null;
+            }
+        }
+
         static void DisplayMenu()
         {
             Console.WriteLine();
             Console.WriteLine("1. List the available apps");
-            Console.WriteLine("2. Install apps (WIP, just downloads the installers for now)");
+            Console.WriteLine("2. Install apps");
             Console.WriteLine("3. Proyect GitHub");
             Console.WriteLine("4. Exit");
         }
@@ -83,7 +119,7 @@ namespace FastBulkInstaller
             }
         }
 
-        static void ReadFile(string path, Dictionary<string, Tuple<string, string, string, string, bool, string>> programDictionary)
+        static void ReadFile(string path, Database database)
         {
             IEnumerable<string> lines = File.ReadLines(path);
 
@@ -93,22 +129,26 @@ namespace FastBulkInstaller
 
             Console.ForegroundColor = ConsoleColor.White;
 
-            //Searches for an item from config.yaml on the dictionary 
-            foreach (var kvp in programDictionary)
+            foreach (AppInfo appInfo in database.DB)
             {
-                if (list.Contains(kvp.Key))
+                if (list.Contains(appInfo.Codename))
                 {
-                    Task.Run(async () => await Download(kvp.Value.Item2)).Wait();
-                    
-                    if (kvp.Value.Item5)
+                    if (Directory.Exists(appInfo.InstallRoute))
                     {
-                        PowerShell(kvp.Value.Item6);
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"{appInfo.Name} is already installed! Skipping instalation");
+                        continue;
+                    }
+                    Download(appInfo.Url, appInfo.FileName).Wait();
+                    if (appInfo.InstalableSilently)
+                    {
+                        PowerShell(appInfo.InstallCommand);
                         Console.ForegroundColor = ConsoleColor.Green;
-                        Console.WriteLine($"{kvp.Value.Item1} installed succesfully!");
+                        Console.WriteLine($"{appInfo.Name} installed succesfully!");
+                        DeleteFiles(Directory.GetCurrentDirectory());
                     }
                 }
             }
-            DeleteFiles(Directory.GetCurrentDirectory());
         }
 
         static void DeleteFiles(string path)
@@ -164,27 +204,56 @@ namespace FastBulkInstaller
             process.WaitForExit();
         }
 
-        static void ListaProgramas(Dictionary<string, Tuple<string, string, string, string, bool, string>> programDictionary)
+        static void ListaProgramas(Database database)
         {
             Console.Clear();
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine("Codename | Program Name | Available Version | Instalable Silently");
+            Console.ForegroundColor = ConsoleColor.Magenta;
+            Console.Write("Codename");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write(" | ");
+            Console.ForegroundColor = ConsoleColor.DarkGreen;
+            Console.Write("Program Name");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write(" | ");
+            Console.ForegroundColor = ConsoleColor.Blue;
+            Console.Write("Available Version");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write(" | ");
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.Write("Instalable Silently");
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine();
-            foreach (var kvp in programDictionary)
+
+            Console.WriteLine();
+            foreach (AppInfo appInfo in database.DB)
             {
-                Console.WriteLine($"{kvp.Key} | {kvp.Value.Item1} | {kvp.Value.Item3} | { kvp.Value.Item5}");
+                Console.ForegroundColor = ConsoleColor.Magenta;
+                Console.Write(appInfo.Codename);
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.Write(" | ");
+                Console.ForegroundColor = ConsoleColor.DarkGreen;
+                Console.Write(appInfo.Name);
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.Write(" | ");
+                Console.ForegroundColor = ConsoleColor.Blue;
+                Console.Write(appInfo.Version);
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.Write(" | ");
+                Console.ForegroundColor = ConsoleColor.Gray;
+                Console.Write(appInfo.InstalableSilently);
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.WriteLine();
             }
+
             Console.WriteLine();
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine("Press any key to return . . .");
             Console.ReadKey();
             Main();
         }
-       
-        static async Task Download(string url)
+
+        static async Task Download(string url, string fileName)
         {
-            string fileName = Path.GetFileName(url);
             string filePath = Path.Combine(Directory.GetCurrentDirectory(), fileName);
 
             Console.ForegroundColor = ConsoleColor.Yellow;
@@ -222,30 +291,23 @@ namespace FastBulkInstaller
                 }
             }
         }
+    }
 
-        static void ProgramDiccionary(Dictionary<string, Tuple<string, string, string, string, bool, string>> programDictionary)
-        {
-            // CODENAME,
-            // URL , VERSION , HASH , INSTALABLE SILENTLY, INSTALL
-            programDictionary.Add("np++", new Tuple<string, string, string, string, bool, string>
-            (
-                "Notepad ++",
-                "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.5.5/npp.8.5.5.Installer.x64.exe",
-                "8.5.5",
-                "260ba9ebf2932419604d723f7381d13fa1fa83745b58a93ce4d460cde15022bd",
-                true,
-                "start-process -FilePath npp.8.5.5.Installer.x64.exe -ArgumentList '/S' -Verb runas -Wait"
-            ));
+    public class AppInfo
+    {
+        public string Codename { get; set; }
+        public string Name { get; set; }
+        public string Url { get; set; }
+        public string Version { get; set; }
+        public string Hash { get; set; }
+        public bool InstalableSilently { get; set; }
+        public string InstallCommand { get; set; }
+        public string InstallRoute { get; set; }
+        public string FileName { get; set; }
+    }
 
-            programDictionary.Add("vlc", new Tuple<string, string, string, string, bool, string>
-            (
-                "VLC media player",
-                "https://mirrors.netix.net/vlc/vlc/3.0.18/win64/vlc-3.0.18-win64.exe",
-                "3.0.18",
-                "ba575f153d357eaf3fdbf446b9b93a12ced87c35887cdd83ad4281733eb86602",
-                true,
-                "start-process -FilePath vlc-3.0.18-win64.exe -ArgumentList '/L=1033 /S /NCRC' -Verb runas -Wait"
-            ));
-        }
+    public class Database
+    {
+        public List<AppInfo> DB { get; set; }
     }
 }
