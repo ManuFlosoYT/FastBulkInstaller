@@ -53,9 +53,8 @@ namespace FastBulkInstaller
                     ReadFile(path, programdictionary);
                     break;
                 case 3:
-                    //string url = "https://www.example.com";
-                    //Process.Start(url);
-                    
+                    string url = "https://github.com/ManuFlosoYT/FastBulkInstaller";
+                    Process.Start(url);
                     break;
                 case 4:
                     Environment.Exit(0);
@@ -104,44 +103,47 @@ namespace FastBulkInstaller
                     if (kvp.Value.Item5)
                     {
                         PowerShell(kvp.Value.Item6);
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine($"{kvp.Value.Item1} installed succesfully!");
                     }
                 }
             }
-            Wait();
+            DeleteFiles(Directory.GetCurrentDirectory());
         }
 
-        static void CMD(string command)
+        static void DeleteFiles(string path)
         {
-            ProcessStartInfo startInfo = new ProcessStartInfo
+            if (Directory.Exists(path))
             {
-                FileName = "cmd.exe",
-                Arguments = "/C " + command,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = false
-            };
+                string excludedFileName = "FastBulkInstaller.exe";
+                string[] exeFiles = Directory.GetFiles(path, "*.exe");
 
-            Process process = new Process
-            {
-                StartInfo = startInfo
-            };
-            process.Start();
-
-            StreamReader streamReader = process.StandardOutput;
-
-            StreamReader errorReader = process.StandardError;
-            string errors = errorReader.ReadToEnd();
-            Console.WriteLine(errors);
-
-            string output = streamReader.ReadToEnd();
-            Console.WriteLine(output);
-
-            streamReader.Close();
-            errorReader.Close();
-            process.WaitForExit();
-            process.Close();
-
+                foreach (string exeFile in exeFiles)
+                {
+                    if (!Path.GetFileName(exeFile).Equals(excludedFileName))
+                    {
+                        try
+                        {
+                            if (File.Exists(exeFile))
+                            {
+                                File.Delete(exeFile);
+                                Console.ForegroundColor = ConsoleColor.Green;
+                                Console.WriteLine($"Deleted file: {exeFile}");
+                            }
+                            else
+                            {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine($"File does not exist: {exeFile}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine($"Error deleting file {exeFile}: {ex.Message}");
+                        }
+                    }
+                }
+            }
         }
 
         static void PowerShell(string powerShellCommand)
@@ -159,25 +161,7 @@ namespace FastBulkInstaller
 
             Process process = new Process { StartInfo = psi };
             process.Start();
-
-            string output = process.StandardOutput.ReadToEnd();
-            string error = process.StandardError.ReadToEnd();
-
             process.WaitForExit();
-
-            Console.WriteLine("Output:");
-            Console.WriteLine(output);
-
-            Console.WriteLine("Error:");
-            Console.WriteLine(error);
-        }
-
-        static void Wait()
-        {
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine("Press any key to continue . . .");
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.ReadKey();
         }
 
         static void ListaProgramas(Dictionary<string, Tuple<string, string, string, string, bool, string>> programDictionary)
@@ -196,6 +180,47 @@ namespace FastBulkInstaller
             Console.WriteLine("Press any key to return . . .");
             Console.ReadKey();
             Main();
+        }
+       
+        static async Task Download(string url)
+        {
+            string fileName = Path.GetFileName(url);
+            string filePath = Path.Combine(Directory.GetCurrentDirectory(), fileName);
+
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"Started downloading {fileName} to {filePath}");
+
+            using (HttpClient client = new HttpClient())
+            {
+                try
+                {
+                    using (HttpResponseMessage response = await client.GetAsync(url))
+                    {
+                        if (response.IsSuccessStatusCode)
+                        {
+                            using (Stream contentStream = await response.Content.ReadAsStreamAsync())
+                            {
+                                using (FileStream fileStream = File.Create(filePath))
+                                {
+                                    await contentStream.CopyToAsync(fileStream);
+                                    Console.ForegroundColor = ConsoleColor.Green;
+                                    Console.WriteLine($"File downloaded and saved to: {filePath}");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine($"Failed to download the file. Status code: {response.StatusCode}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"An error occurred: {ex.Message}");
+                }
+            }
         }
 
         static void ProgramDiccionary(Dictionary<string, Tuple<string, string, string, string, bool, string>> programDictionary)
@@ -221,41 +246,6 @@ namespace FastBulkInstaller
                 true,
                 "start-process -FilePath vlc-3.0.18-win64.exe -ArgumentList '/L=1033 /S /NCRC' -Verb runas -Wait"
             ));
-        }
-
-        static async Task Download(string url)
-        {
-            string fileName = Path.GetFileName(url);
-            string filePath = Path.Combine(Directory.GetCurrentDirectory(), fileName);
-
-            using (HttpClient client = new HttpClient())
-            {
-                try
-                {
-                    using (HttpResponseMessage response = await client.GetAsync(url))
-                    {
-                        if (response.IsSuccessStatusCode)
-                        {
-                            using (Stream contentStream = await response.Content.ReadAsStreamAsync())
-                            {
-                                using (FileStream fileStream = File.Create(filePath))
-                                {
-                                    await contentStream.CopyToAsync(fileStream);
-                                    Console.WriteLine($"File downloaded and saved to: {filePath}");
-                                }
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Failed to download the file. Status code: {response.StatusCode}");
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"An error occurred: {ex.Message}");
-                }
-            }
         }
     }
 }
