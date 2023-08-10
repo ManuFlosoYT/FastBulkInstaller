@@ -94,7 +94,7 @@ namespace FastBulkInstaller
 
             Console.ForegroundColor = ConsoleColor.White;
 
-            //Searches for an item from config.yaml on the dictionary
+            //Searches for an item from config.yaml on the dictionary 
             foreach (var kvp in programDictionary)
             {
                 if (list.Contains(kvp.Key))
