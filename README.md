@@ -8,25 +8,33 @@ An easy way to bulk install your programs
 
 ## Features
 
-- Easily bulk install programs
-- Silent bulk install mode
+- Easily and Silently bulk install programs
+- UltraSilent bulk install mode
 
 ## Screenshots
 
-Showcase the UI or important functionality using screenshots or GIFs.
+![Main Menu](FastBulkInstaller/Images/menu.png)
+![Program List](FastBulkInstaller/Images/programList.png)
 
 ## Installation
 
-Quick steps to get the project up and running.
+Extract the zip and run!
+No instalation needed.
 
 ## Usage
 
-Examples and code snippets demonstrating how to use your project.
+1. Launch FBI to create "config.yaml" file
+2. Select option 1 to check available programs on the database
+3. Copy the codenames and paste them on "config.yaml"
+4. Select how you want to install
+    1. (Via the FBI UI) Select option 2 on the main menu to install
+    2. (UltraSilent) (FastBulkInstaller.exe /S) via cmd
+
 
 ## Contributing
 
-Guidelines for contributing, pull request process, and code of conduct.
+Contributions expanding the database are always welcomed! To contribute open a new issue with the database tag.
+[FBI database](https://pastebin.com/XkgNYRTL)
 
-## License
-
-This project is licensed under the [License Name] - see the [LICENSE](LICENSE) file for details.
+## Reposting
+Please <u>DO NOT.</u> repost the .exe file directly, redirecting to the proyect's GitHub page is allowed.
