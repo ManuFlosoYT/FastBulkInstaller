@@ -6,6 +6,10 @@ An easy way to bulk install your programs
 
 ![Compat](https://img.shields.io/badge/Compatibility:-Windows 10/11-blue)
 
+## Tutorial
+
+https://youtu.be/O5OVfGqE_po
+
 ## Features
 
 - Easily and Silently bulk install programs
