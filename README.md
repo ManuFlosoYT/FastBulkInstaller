@@ -18,7 +18,7 @@ An easy way to bulk install your programs
 
 ## Installation
 
-Extract the zip and run!
+Extract the zip and run directly!
 No instalation needed.
 
 ## Usage
