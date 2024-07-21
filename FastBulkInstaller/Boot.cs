@@ -10,7 +10,7 @@ namespace FastBulkInstaller
 {
     public class FBI
     {
-        public static string path = Path.Combine(Directory.GetCurrentDirectory(), "config.yaml");
+        public static string path = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
         public static bool isSilent = false;
         public static Database database;
         public static bool isAdmin = false;
@@ -36,9 +36,10 @@ namespace FastBulkInstaller
                         Environment.Exit(0);
                     }
                 }
-            }  
+            }
+            CreateConfigFile();
 
-            Console.WriteLine("Fetching program Database from the web");
+            Console.WriteLine("Fetching program Database");
             string jsc = "";
             Task.Run(async () =>
             {
@@ -46,8 +47,7 @@ namespace FastBulkInstaller
             }).Wait();
             database = JsonConvert.DeserializeObject<Database>(jsc);
 
-            CreateConfigFile();
-
+            
             if (!isSilent)
             {
                 UI.MainMenu();
@@ -83,7 +83,10 @@ namespace FastBulkInstaller
             {
                 using (StreamWriter sw = File.CreateText(path))
                 {
-                    sw.WriteLine("#Add one program ID per line without separators or spaces, DO NOT EDIT THIS FIRST LINE as this line is ignored in code");
+                    sw.WriteLine("CONFIG FILE V1.2");
+                    sw.WriteLine("Add the url or local file path with \"\" at the start and end of the string of the database on the line 4, the default one is https://pastebin.com/raw/XkgNYRTL");
+                    sw.WriteLine("Starting on line 5 add one program ID per line without separators or spaces");
+                    sw.WriteLine("https://pastebin.com/raw/XkgNYRTL");
                 }
             }
         }

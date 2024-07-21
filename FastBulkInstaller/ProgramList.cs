@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace FastBulkInstaller
 {
@@ -10,7 +11,12 @@ namespace FastBulkInstaller
     {
         public static void List()
         {
+            IEnumerable<string> lines = File.ReadLines(FBI.path);
+            List<string> list = new List<string>(lines);
+
             Console.Clear();
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine($"Database: {list[3].Replace("\"", "")}");
             Console.ForegroundColor = ConsoleColor.Magenta;
             Console.Write("Codename");
             Console.ForegroundColor = ConsoleColor.White;
